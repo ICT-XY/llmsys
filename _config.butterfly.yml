@@ -22,7 +22,7 @@ menu:
   标签: /tags/ || fas fa-tags
   分类: /categories/ || fas fa-folder-open
   照片: /Gallery/ || fas fa-images
-  小说: /novel/ || fas fa-book
+  小说: /categories/novels || fas fa-book
   友链: /link/ || fas fa-link
   关于: /about/ || fas fa-heart
   # Home: / || fas fa-home
