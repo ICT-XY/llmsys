@@ -35,3 +35,40 @@ git config --global url."https://ghfast.top/".insteadOf https://
 [url "https://ghfast.top/https://github.com/"]
     insteadOf = https://github.com/
 ```
+
+
+## 可用代理列表：
+没有一个一个试，目前只用了第一个
+```
+https://ghfast.top/
+
+https://gh.api.99988866.xyz
+
+https://ghp.ml1.one
+
+https://doget.nocsdn.com
+
+https://ghgo.xyz
+
+https://slink.ltd
+
+https://ghps.cc
+
+https://gh-proxy.com
+
+https://ghproxy.cc
+
+https://cf.ghproxy.cc
+
+https://github.tmby.shop
+
+https://gh-proxy.ygxz.in
+
+https://ghproxy.net
+
+https://ghproxy.cn
+```
+
+## 参考：
+https://blog.csdn.net/qq_39749966/article/details/145152772
+https://blog.csdn.net/supperman_009/article/details/130466946
