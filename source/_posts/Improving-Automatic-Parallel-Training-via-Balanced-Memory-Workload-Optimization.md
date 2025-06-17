@@ -24,7 +24,7 @@ categories: paper-reading
 DP, SDP, PP, CKPT
 注意，CKPT将搜索空间扩展了一倍。
 因为CKPT在与其他并行方法相结合时，会产生额外的通信开销。比如与TP相结合，因为CKPT会引入额外的一个forward，进而会引入额外的激活值同步开销。因此，TP+ ckpt和单纯的TP是两种截然不同的策略，有着截然不同的通信、内存和计算开销。
-e:\PaperNotes\Notes\Attach\Pasted image 20250617150730.png
+
 ![](</source/images/Pasted image 20250617150730.png>)
 # 优化算法
 ## 问题形式化：
