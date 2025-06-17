@@ -1,0 +1,263 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Improving Automatic Parallel Training via Balanced  Memory Workload Optimization | 小徐小卫知识库</title><meta name="author" content="小徐小卫"><meta name="copyright" content="小徐小卫"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="论文链接：https:&#x2F;&#x2F;arxiv.org&#x2F;abs&#x2F;2307.02031 代码地址：https:&#x2F;&#x2F;github.com&#x2F;PKU-DAIR&#x2F;Hetu-Galvatron 创新点： 并行策略空间比较大 （DP,SDP,TP, PP, CKPT） 不仅考虑自动化并行，还兼顾了当模型层不规整的时候，流水线切分时的耗时&#x2F;内存负载均衡问题。  并行策略空间：DP, SDP, PP, CKPT注意">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Improving Automatic Parallel Training via Balanced  Memory Workload Optimization">
+<meta property="og:url" content="https://llmsys.vercel.app/2025/06/17/Improving-Automatic-Parallel-Training-via-Balanced-Memory-Workload-Optimization/index.html">
+<meta property="og:site_name" content="小徐小卫知识库">
+<meta property="og:description" content="论文链接：https:&#x2F;&#x2F;arxiv.org&#x2F;abs&#x2F;2307.02031 代码地址：https:&#x2F;&#x2F;github.com&#x2F;PKU-DAIR&#x2F;Hetu-Galvatron 创新点： 并行策略空间比较大 （DP,SDP,TP, PP, CKPT） 不仅考虑自动化并行，还兼顾了当模型层不规整的时候，流水线切分时的耗时&#x2F;内存负载均衡问题。  并行策略空间：DP, SDP, PP, CKPT注意">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://llmsys.vercel.app/img/touxiang.jpeg">
+<meta property="article:published_time" content="2025-06-17T14:49:27.000Z">
+<meta property="article:modified_time" content="2025-06-17T14:59:57.503Z">
+<meta property="article:author" content="小徐小卫">
+<meta property="article:tag" content="并行">
+<meta property="article:tag" content="大模型">
+<meta property="article:tag" content="自动化并行">
+<meta property="article:tag" content="三维并行">
+<meta property="article:tag" content="checkpoint">
+<meta property="article:tag" content="LLM">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://llmsys.vercel.app/img/touxiang.jpeg"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Improving Automatic Parallel Training via Balanced  Memory Workload Optimization",
+  "url": "https://llmsys.vercel.app/2025/06/17/Improving-Automatic-Parallel-Training-via-Balanced-Memory-Workload-Optimization/",
+  "image": "https://llmsys.vercel.app/img/touxiang.jpeg",
+  "datePublished": "2025-06-17T14:49:27.000Z",
+  "dateModified": "2025-06-17T14:59:57.503Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "小徐小卫",
+      "url": "https://llmsys.vercel.app/"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://llmsys.vercel.app/2025/06/17/Improving-Automatic-Parallel-Training-via-Balanced-Memory-Workload-Optimization/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Improving Automatic Parallel Training via Balanced  Memory Workload Optimization',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/touxiang.jpeg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">5</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">8</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">2</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/Gallery/"><i class="fa-fw fas fa-images"></i><span> 照片</span></a></div><div class="menus_item"><a class="site-page" href="/categories/novels"><i class="fa-fw fas fa-book"></i><span> 小说</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/pig6.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">小徐小卫知识库</span></a><a class="nav-page-title" href="/"><span class="site-name">Improving Automatic Parallel Training via Balanced  Memory Workload Optimization</span></a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/Gallery/"><i class="fa-fw fas fa-images"></i><span> 照片</span></a></div><div class="menus_item"><a class="site-page" href="/categories/novels"><i class="fa-fw fas fa-book"></i><span> 小说</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">Improving Automatic Parallel Training via Balanced  Memory Workload Optimization</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2025-06-17T14:49:27.000Z" title="发表于 2025-06-17 22:49:27">2025-06-17</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2025-06-17T14:59:57.503Z" title="更新于 2025-06-17 22:59:57">2025-06-17</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/paper-reading/">paper-reading</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><p>论文链接：<br><a target="_blank" rel="noopener" href="https://arxiv.org/abs/2307.02031">https://arxiv.org/abs/2307.02031</a></p>
+<p>代码地址：<br><a target="_blank" rel="noopener" href="https://github.com/PKU-DAIR/Hetu-Galvatron">https://github.com/PKU-DAIR/Hetu-Galvatron</a></p>
+<h1 id="创新点："><a href="#创新点：" class="headerlink" title="创新点："></a>创新点：</h1><ul>
+<li>并行策略空间比较大 （DP,SDP,TP, PP, CKPT）</li>
+<li>不仅考虑自动化并行，还兼顾了当模型层不规整的时候，流水线切分时的耗时&#x2F;内存负载均衡问题。</li>
+</ul>
+<h1 id="并行策略空间："><a href="#并行策略空间：" class="headerlink" title="并行策略空间："></a>并行策略空间：</h1><p>DP, SDP, PP, CKPT<br>注意，CKPT将搜索空间扩展了一倍。<br>因为CKPT在与其他并行方法相结合时，会产生额外的通信开销。比如与TP相结合，因为CKPT会引入额外的一个forward，进而会引入额外的激活值同步开销。因此，TP+ ckpt和单纯的TP是两种截然不同的策略，有着截然不同的通信、内存和计算开销。</p>
+<img src="/2025/06/17/Improving-Automatic-Parallel-Training-via-Balanced-Memory-Workload-Optimization/20250617150730.png" class="">
+
+
+<h1 id="优化算法"><a href="#优化算法" class="headerlink" title="优化算法"></a>优化算法</h1><h2 id="问题形式化："><a href="#问题形式化：" class="headerlink" title="问题形式化："></a>问题形式化：</h2><p>输入：一个模型M（L层），N个设备（可用内存E）。<br>目标：最大化吞吐量<br>返回：最高吞吐量对应的并行策略。</p>
+<p>下图是一个基准流程，假设pipeline的切分策略已知：</p>
+<img src="/2025/06/17/Improving-Automatic-Parallel-Training-via-Balanced-Memory-Workload-Optimization/20250617170627.png" class="">
+<h2 id="阶段内并行策略优化："><a href="#阶段内并行策略优化：" class="headerlink" title="阶段内并行策略优化："></a>阶段内并行策略优化：</h2><p>动态规划算法：<br>注：为了简化，<br>C为耗时，E为内存开销。</p>
+<img src="/2025/06/17/Improving-Automatic-Parallel-Training-via-Balanced-Memory-Workload-Optimization/20250617155234.png" class="">
+
+<h2 id="阶段间切分算法："><a href="#阶段间切分算法：" class="headerlink" title="阶段间切分算法："></a>阶段间切分算法：</h2><ul>
+<li><p>核心理念：</p>
+<ul>
+<li>兼顾时间开销的均衡和内存开销的均衡</li>
+</ul>
+</li>
+<li><p>定义均衡指数如下：</p>
+<img src="/2025/06/17/Improving-Automatic-Parallel-Training-via-Balanced-Memory-Workload-Optimization/20250617164451.png" class="">
+<ul>
+<li>C为时间开销，O为内存开销，P为阶段数目。</li>
+<li>指数越大，开销越均衡，性能越理想。</li>
+</ul>
+</li>
+<li><p>实例1：</p>
+<ul>
+<li><img src="/2025/06/17/Improving-Automatic-Parallel-Training-via-Balanced-Memory-Workload-Optimization/20250617165129.png" class=""></li>
+<li>只优化内存均衡：时间不均衡，吞吐量低。</li>
+<li>只优化耗时均衡：个别阶段内存开销极高，超出可用内存，切分策略失效。</li>
+</ul>
+</li>
+<li><p>方法：</p>
+<ul>
+<li>优化目标：<ul>
+<li><img src="/2025/06/17/Improving-Automatic-Parallel-Training-via-Balanced-Memory-Workload-Optimization/20250617170038.png" class=""></li>
+<li>其中pm是只优化内存的切分策略。</li>
+<li>pt是只优化时间的切分策略。</li>
+<li>这个也很好理解，如果上式有一个不成立，那我们不如干脆用pt&#x2F;pm算了。</li>
+</ul>
+</li>
+<li>双目标优化流程：</li>
+<li><img src="/2025/06/17/Improving-Automatic-Parallel-Training-via-Balanced-Memory-Workload-Optimization/20250617170652.png" class="">
+<ul>
+<li>相对于基准流程，加了一个pipeline切分的迭代。</li>
+<li>迭代以pm为起点</li>
+<li>迭代方式：取当前耗时最长的一个stage，把它的边缘的层挪到相邻stage上去。</li>
+<li>对每个新的p‘，先进行如下验证：<ul>
+<li>1、最大耗时不能超过之前的最大耗时。</li>
+<li>2、最大内存开销不能超过pt下的内存开销。</li>
+<li>3、内存开销小于可用内存。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h1 id="系统实现"><a href="#系统实现" class="headerlink" title="系统实现"></a>系统实现</h1><img src="/2025/06/17/Improving-Automatic-Parallel-Training-via-Balanced-Memory-Workload-Optimization/20250617141420.png" class="">
+<h2 id="评估器"><a href="#评估器" class="headerlink" title="评估器"></a>评估器</h2><ul>
+<li>内存：for the memory consumption, we use the shape of a tensor and its data type to calculate its memory.</li>
+<li>计算耗时：batch size乘以per sample computation time，后者可以直接在单块GPU上profile获取。 反向直接用前向时间x2.</li>
+<li>通信耗时：通信量除以带宽</li>
+<li>还考虑了通信和计算折叠的影响。</li>
+<li>对于使用了CKPT的，再加一个foward开销。</li>
+</ul>
+<h1 id="内存开销分析"><a href="#内存开销分析" class="headerlink" title="内存开销分析"></a>内存开销分析</h1><img src="/2025/06/17/Improving-Automatic-Parallel-Training-via-Balanced-Memory-Workload-Optimization/20250617143104.png" class="">
+<ul>
+<li>其中，<ul>
+<li>msi为model state，是参数相关的存储（参数、参数梯度、）</li>
+<li>fk为第k层的前向激活值</li>
+<li>bi为第i层的反向激活值。</li>
+</ul>
+</li>
+<li>总的来说，上述式子的意思是<ul>
+<li>第i层的内存开销，等于从0~i层的前向激活值、加上本层的反向激活值，加上总的参数相关存储。</li>
+<li>求所有层的开销，取最大值。</li>
+</ul>
+</li>
+</ul>
+<h2 id="checkpoint技术对内存开销的影响："><a href="#checkpoint技术对内存开销的影响：" class="headerlink" title="checkpoint技术对内存开销的影响："></a>checkpoint技术对内存开销的影响：</h2><p>对于使用了ckpt的层，<br>c(fi) &#x3D; c(bndi), 并且c(bi) &#x3D; c(inti)<br>其中，</p>
+<ul>
+<li>bnd为两层中间的向量，比如一层的输入向量或者一层的输出向量。</li>
+<li>int为一层的中间向量。</li>
+</ul>
+<p>对于不使用ckpt的层，<br>c(fi) &#x3D; c(bndi) + c(inti)<br>c(bi) &#x3D; 0</p>
+<ul>
+<li>也就是说，他认为，不使用ckpt的时候，反向传播不会产生新的中间向量。<blockquote>
+<p>[!attention] 存疑<br>在前向传播或反向传播时，<strong>是否</strong>会产生一些中间向量，而这个中间向量不会被保存，只是计算所用。用完就丢弃，导致计算内存开销产生尖锐峰值。</p>
+</blockquote>
+</li>
+</ul>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://llmsys.vercel.app">小徐小卫</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://llmsys.vercel.app/2025/06/17/Improving-Automatic-Parallel-Training-via-Balanced-Memory-Workload-Optimization/">https://llmsys.vercel.app/2025/06/17/Improving-Automatic-Parallel-Training-via-Balanced-Memory-Workload-Optimization/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://llmsys.vercel.app" target="_blank">小徐小卫知识库</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E5%B9%B6%E8%A1%8C/">并行</a><a class="post-meta__tags" href="/tags/%E5%A4%A7%E6%A8%A1%E5%9E%8B/">大模型</a><a class="post-meta__tags" href="/tags/%E8%87%AA%E5%8A%A8%E5%8C%96%E5%B9%B6%E8%A1%8C/">自动化并行</a><a class="post-meta__tags" href="/tags/%E4%B8%89%E7%BB%B4%E5%B9%B6%E8%A1%8C/">三维并行</a><a class="post-meta__tags" href="/tags/checkpoint/">checkpoint</a><a class="post-meta__tags" href="/tags/LLM/">LLM</a></div><div class="post-share"><div class="social-share" data-image="/img/touxiang.jpeg" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related full-width" href="/2025/06/17/%E7%A6%81%E6%AD%A2%E5%92%8C%E9%AB%98%E5%8D%B1%E7%89%A9%E7%A7%8D%E8%B0%88%E6%81%8B%E7%88%B1/" title="禁止和高危物种谈恋爱！"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">禁止和高危物种谈恋爱！</div></div><div class="info-2"><div class="info-item-1">书名：《禁止和高危物种谈恋爱！》 作者：柿宴甜首发：晋江类型：主攻、快穿、爽文、双强晋江评分：10.0 1V1，第一个世界攻契约了受，然后去各个小世界找老婆~ 攻有记忆，受无记忆。攻受开篇即满级，炮灰打脸剧情有但很少。主要写两口子培养感情（主）和走剧情（辅）。 已经看了两个小世界了，基本就是老婆在原文里设定比较反派，心存死志但依旧坚韧的要完成自己最后的目标。然后攻出现保护老婆，协助老婆完成自己的任务，帮助老婆重拾活下去的信念。很难得的是在这个过程中攻也只是协助，受没有被边缘话，在完成任务上依旧有着自己的贡献，是不可或缺的重要力量。 攻属于沉稳可靠的类型，话不多，偶尔会跟系统说点小骚话，对其他人脸盲（包括原文主角受），对自己老婆就是一见钟情，喜欢跟老婆贴贴，还有点茶茶的。受设定比较“美强惨”，但感情上出乎意料的单纯，在接受到攻的示好后会火速自我攻略然后回巨粗的箭头。又强大又纯情的老婆谁看都说好。 先写这么多，等看完再来更。 </div></div></div></a></nav></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/touxiang.jpeg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">小徐小卫</div><div class="author-info-description"></div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">5</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">8</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">2</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/xxxxxx"><i class="fab fa-github"></i><span>Follow Me</span></a></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">This is my Blog</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%88%9B%E6%96%B0%E7%82%B9%EF%BC%9A"><span class="toc-number">1.</span> <span class="toc-text">创新点：</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%B9%B6%E8%A1%8C%E7%AD%96%E7%95%A5%E7%A9%BA%E9%97%B4%EF%BC%9A"><span class="toc-number">2.</span> <span class="toc-text">并行策略空间：</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%BC%98%E5%8C%96%E7%AE%97%E6%B3%95"><span class="toc-number">3.</span> <span class="toc-text">优化算法</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%97%AE%E9%A2%98%E5%BD%A2%E5%BC%8F%E5%8C%96%EF%BC%9A"><span class="toc-number">3.1.</span> <span class="toc-text">问题形式化：</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%98%B6%E6%AE%B5%E5%86%85%E5%B9%B6%E8%A1%8C%E7%AD%96%E7%95%A5%E4%BC%98%E5%8C%96%EF%BC%9A"><span class="toc-number">3.2.</span> <span class="toc-text">阶段内并行策略优化：</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%98%B6%E6%AE%B5%E9%97%B4%E5%88%87%E5%88%86%E7%AE%97%E6%B3%95%EF%BC%9A"><span class="toc-number">3.3.</span> <span class="toc-text">阶段间切分算法：</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%B3%BB%E7%BB%9F%E5%AE%9E%E7%8E%B0"><span class="toc-number">4.</span> <span class="toc-text">系统实现</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%AF%84%E4%BC%B0%E5%99%A8"><span class="toc-number">4.1.</span> <span class="toc-text">评估器</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%86%85%E5%AD%98%E5%BC%80%E9%94%80%E5%88%86%E6%9E%90"><span class="toc-number">5.</span> <span class="toc-text">内存开销分析</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#checkpoint%E6%8A%80%E6%9C%AF%E5%AF%B9%E5%86%85%E5%AD%98%E5%BC%80%E9%94%80%E7%9A%84%E5%BD%B1%E5%93%8D%EF%BC%9A"><span class="toc-number">5.1.</span> <span class="toc-text">checkpoint技术对内存开销的影响：</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2025/06/17/Improving-Automatic-Parallel-Training-via-Balanced-Memory-Workload-Optimization/" title="Improving Automatic Parallel Training via Balanced  Memory Workload Optimization">Improving Automatic Parallel Training via Balanced  Memory Workload Optimization</a><time datetime="2025-06-17T14:49:27.000Z" title="发表于 2025-06-17 22:49:27">2025-06-17</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2025/06/17/%E7%A6%81%E6%AD%A2%E5%92%8C%E9%AB%98%E5%8D%B1%E7%89%A9%E7%A7%8D%E8%B0%88%E6%81%8B%E7%88%B1/" title="禁止和高危物种谈恋爱！">禁止和高危物种谈恋爱！</a><time datetime="2025-06-16T17:13:34.000Z" title="发表于 2025-06-17 01:13:34">2025-06-17</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2025/06/16/Butterfly%E4%B8%BB%E9%A2%98%E7%BD%91%E7%AB%99/" title="Butterfly主题网站">Butterfly主题网站</a><time datetime="2025-06-16T15:32:04.000Z" title="发表于 2025-06-16 23:32:04">2025-06-16</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2025/06/16/github%E4%BB%A3%E7%90%86%E5%8A%A0%E9%80%9F/" title="github代理加速">github代理加速</a><time datetime="2025-06-16T14:33:32.000Z" title="发表于 2025-06-16 22:33:32">2025-06-16</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2025/06/15/hello-world/" title="Hello World">Hello World</a><time datetime="2025-06-15T15:08:35.943Z" title="发表于 2025-06-15 23:08:35">2025-06-15</time></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2019 - 2025 By 小徐小卫</div><div class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 7.3.0</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.3.5</a></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>
