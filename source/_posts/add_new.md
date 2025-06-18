@@ -7,4 +7,4 @@ tags:
 
 # 测试
 
-![](add_new\test.jpeg)
+![](add_new/test.jpeg)
