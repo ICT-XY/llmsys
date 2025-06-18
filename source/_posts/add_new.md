@@ -6,3 +6,5 @@ tags:
 
 
 # 测试
+
+![](add_new/test.jpeg)
